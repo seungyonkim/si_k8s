@@ -5,7 +5,7 @@ __pycache__/
 
 # C extensions
 *.so
-
+*/4. assignment_ans/*
 # Distribution / packaging
 .Python
 build/

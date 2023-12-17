@@ -1,0 +1,14 @@
+# Fill the blank and uncomment to use it
+
+apiVersion: v1
+# kind: ________
+metadata:
+  name: postgres
+  labels:
+    service: postgres
+spec:
+  selector:
+    service: postgres
+  type: ClusterIP
+  # _____:
+  # - ______: 5432

@@ -1,0 +1,15 @@
+# Fill the blank and uncomment to use it
+
+apiVersion: v1
+# kind: _______
+metadata:
+  name: postgres-pvc
+  labels:
+    type: local
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: do-block-storage

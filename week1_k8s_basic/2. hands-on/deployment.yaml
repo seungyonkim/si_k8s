@@ -1,0 +1,23 @@
+# ---------------------Deployment---------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flask # name of the deployment
+  labels:
+    name: flask # label used to identify the deployment
+# ---------------------ReplicaSet---------------------------------
+spec:
+  replicas: 1 # define the number of pods to run
+  selector:
+    matchLabels:
+      app: flask
+  # ---------------------Pod----------------------------------------
+  template:
+    metadata:
+      labels:
+        app: flask # label used to identify the pod
+    spec:
+      containers:
+        - name: flask
+          image: registry.digitalocean.com/shareninspireflask/my-python-app:latest
+      restartPolicy: Always

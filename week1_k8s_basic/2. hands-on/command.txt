@@ -1,0 +1,31 @@
+# Prepare docker
+create flask app
+create dockerfile
+
+doctl auth init
+
+doctl registry login
+docker build -t my-python-app .
+docker buildx build --platform=linux/amd64 -t my-python-app .
+docker tag my-python-app registry.digitalocean.com/<your-registry-name>/my-python-app
+docker tag my-python-app registry.digitalocean.com/<your-registry-name>/my-python-app
+
+docker push registry.digitalocean.com/<your-registry-name>/my-python-app
+docker run -p 80:80 registry.digitalocean.com/<your-registry-name>/my-python-app
+-----------------------------
+# Prepare web app deployment
+doctl kubernetes cluster create flask-app-yaml --tag do-tutorial --auto-upgrade=true --node-pool "name=mypool;count=2;auto-scale=true;min-nodes=1;max-nodes=3;tag=do-tutorial"
+kubectl create -f deployment.yaml
+kubectl get deployments
+kubectl get pods
+kubectl logs flask-747f897874-467wh
+-----------------------------
+# Prepare web app service
+kubectl create -f service.yaml
+kubectl get service flask
+external-ip 
+-----------------------------
+# Prepare secret for postgres
+set up secret
+kubectl apply -f secret.yaml
+kubectl describe secret postgres-credentials

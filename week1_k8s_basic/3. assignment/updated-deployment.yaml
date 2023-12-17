@@ -1,0 +1,33 @@
+# Fill the blank and uncomment to use it
+
+apiVersion: apps/v1
+# kind: _______
+metadata:
+  name: flask
+  labels:
+    name: flask
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: flask
+  template:
+    metadata:
+      labels:
+        app: flask
+    spec:
+      containers:
+      - name: flask
+        # image: _____________
+        env:
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              # name: _______
+              key: user
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              # name: ________
+              key: password
+      restartPolicy: Always

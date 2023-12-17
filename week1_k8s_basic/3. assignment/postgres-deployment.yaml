@@ -1,0 +1,48 @@
+# Fill the blank and uncomment to use it
+
+apiVersion: apps/v1
+# kind: _______
+metadata:
+  name: postgres
+  labels:
+    name: database
+# ______:
+  replicas: 1
+  selector:
+    matchLabels:
+      service: postgres
+  template:
+    metadata:
+      labels:
+        service: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:14-alpine
+          volumeMounts:
+            - name: postgres-volume-mount
+              mountPath: /var/lib/postgresql/data
+              subPath: postgres
+          env:
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  # name: _______
+                  key: user
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  # name: __________
+                  # key: _________
+      restartPolicy: Always
+      initContainers:
+        - name: pgsql-data-permission-fix
+          image: busybox
+          command: ["/bin/chmod", "-R", "777", "/data"]
+          volumeMounts:
+            - name: postgres-volume-mount
+              mountPath: /data
+      # ______:
+        - name: postgres-volume-mount
+          persistentVolumeClaim:
+            # claimName: ________
