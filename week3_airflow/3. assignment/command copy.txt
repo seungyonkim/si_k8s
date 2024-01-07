@@ -1,0 +1,89 @@
+1. install kubectl, KinD and Helm
+https://kubernetes.io/docs/tasks/tools/
+https://helm.sh/docs/intro/install/
+
+2. create cluster
+kind create cluster --name airflow-cluster --config kind-cluster.yaml
+kubectl cluster-info
+kubectl get nodes -o wide
+
+3. install airflow on kubernetes
+kubectl create namespace airflow
+kubectl get namespaces
+
+helm repo add apache-airflow https://airflow.apache.org
+helm repo update
+helm search repo airflow
+helm install airflow apache-airflow/airflow --namespace airflow --debug
+# if fails: helm upgrade -i airflow apache-airflow/airflow --namespace airflow --debug
+# Roll back: helm rollback
+kubectl get pods -n airflow
+helm ls -n airflow
+
+
+######################################################################
+NOTES:
+Thank you for installing Apache Airflow 2.7.1!
+
+Your release is named airflow.
+You can now access your dashboard(s) by executing the following command(s) and visiting the corresponding port at localhost in your browser:
+
+Airflow Webserver:     kubectl port-forward svc/airflow-webserver 8080:8080 --namespace airflow
+Default Webserver (Airflow UI) Login credentials:
+    username: admin
+    password: admin
+Default Postgres connection credentials:
+    username: postgres
+    password: postgres
+    port: 5432
+
+You can get Fernet Key value by running the following:
+echo Fernet Key: $(kubectl get secret --namespace airflow airflow-fernet-key -o jsonpath="{.data.fernet-key}" | base64 --decode)
+######################################################################
+
+4. install airflow on kubernetes with custom values
+helm show values apache-airflow/airflow > values.yaml
+create: variables.yaml
+kubectl apply -f variables.yaml
+# upgrade airflow with variables
+helm upgrade --install airflow apache-airflow/airflow -n airflow -f values.yaml --debug
+
+# check variables
+kubectl get pods -n airflow
+kubectl exec -n airflow airflow-scheduler-7fdf9d7cd6-b8vnd -c scheduler -- env | grep VAR
+
+5. Add packages to airflow
+create: requirements.txt
+createe: Dockerfile
+docker build -t airflow-custom:1.0.0 .
+
+*Load: Simulatging Private registry
+kind load docker-image airflow-custom:1.0.0 --name airflow-cluster 
+*upadte values.yaml
+# Default airflow repository -- overridden by all the specific images below
+defaultAirflowRepository: airflow-custom
+# Default airflow tag to deploy
+defaultAirflowTag: "1.0.0"
+
+helm upgrade --install airflow apache-airflow/airflow -n airflow -f values.yaml --debug
+helm ls -n airflow 
+
+6. DAG with GitSync
+Create a private key with ssh-keygen if not exists
+*update gitSync: values.yaml
+kubectl create secret generic airflow-ssh-git-secret --from-file=gitSshKey=/Users/jonghyeokkim/.ssh/id_rsa -n airflow
+kubectl get secrets -n airflow
+
+helm upgrade --install airflow apache-airflow/airflow -n airflow -f values.yaml --debug
+
+7. Create PV for logs
+*create pv.yaml
+kubectl apply -f pv.yaml
+kubectl get pv -n airflow
+
+* Create pvc.yaml
+kubectl apply -f pvc.yaml
+kubectl get pvc -n airflow
+
+*update values.yaml
+helm upgrade --install airflow apache-airflow/airflow -n airflow -f values.yaml --debug

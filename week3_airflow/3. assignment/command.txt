@@ -1,11 +1,14 @@
-1. install kubectl, KinD and Helm
-https://kubernetes.io/docs/tasks/tools/
-https://helm.sh/docs/intro/install/
+1. create a cluster
+# doctl auth init --context k8s-si
+doctl auth switch --context k8s-si
+doctl kubernetes options sizes
+doctl kubernetes cluster create airflow-si-k8s --tag airflow-si --node-pool "name=mypool;count=1;auto-scale=true;min-nodes=1;max-nodes=2;size=s-1vcpu-2gb;tag=airlflow-si"
+doctl kubernetes cluster create si-airflow --tag si-airflow --auto-upgrade=true --node-pool "name=mypool;count=2;auto-scale=true;min-nodes=1;max-nodes=3;tag=si-airflow"
 
-2. create cluster
-kind create cluster --name airflow-cluster --config kind-cluster.yaml
-kubectl cluster-info
-kubectl get nodes -o wide
+2. connect to the cluster
+kubectl config get-contexts
+kubectl config current-context
+kubectl config use-context <context_name>
 
 3. install airflow on kubernetes
 kubectl create namespace airflow
@@ -41,49 +44,146 @@ You can get Fernet Key value by running the following:
 echo Fernet Key: $(kubectl get secret --namespace airflow airflow-fernet-key -o jsonpath="{.data.fernet-key}" | base64 --decode)
 ######################################################################
 
-4. install airflow on kubernetes with custom values
-helm show values apache-airflow/airflow > values.yaml
-create: variables.yaml
-kubectl apply -f variables.yaml
-# upgrade airflow with variables
-helm upgrade --install airflow apache-airflow/airflow -n airflow -f values.yaml --debug
-
-# check variables
-kubectl get pods -n airflow
-kubectl exec -n airflow airflow-scheduler-7fdf9d7cd6-b8vnd -c scheduler -- env | grep VAR
-
-5. Add packages to airflow
-create: requirements.txt
-createe: Dockerfile
-docker build -t airflow-custom:1.0.0 .
-
-*Load: Simulatging Private registry
-kind load docker-image airflow-custom:1.0.0 --name airflow-cluster 
-*upadte values.yaml
-# Default airflow repository -- overridden by all the specific images below
-defaultAirflowRepository: airflow-custom
-# Default airflow tag to deploy
-defaultAirflowTag: "1.0.0"
-
-helm upgrade --install airflow apache-airflow/airflow -n airflow -f values.yaml --debug
-helm ls -n airflow 
-
-6. DAG with GitSync
+4. DAG with GitSync
 Create a private key with ssh-keygen if not exists
+helm show values apache-airflow/airflow > values.yaml
 *update gitSync: values.yaml
 kubectl create secret generic airflow-ssh-git-secret --from-file=gitSshKey=/Users/jonghyeokkim/.ssh/id_rsa -n airflow
 kubectl get secrets -n airflow
 
 helm upgrade --install airflow apache-airflow/airflow -n airflow -f values.yaml --debug
 
-7. Create PV for logs
-*create pv.yaml
-kubectl apply -f pv.yaml
-kubectl get pv -n airflow
 
-* Create pvc.yaml
-kubectl apply -f pvc.yaml
-kubectl get pvc -n airflow
-
-*update values.yaml
-helm upgrade --install airflow apache-airflow/airflow -n airflow -f values.yaml --debug
+apiVersion: v1
+clusters:
+- cluster:
+    certificate-authority-data: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURKekNDQWcrZ0F3SUJBZ0lDQm5Vd0RRWUpLb1pJaHZjTkFRRUxCUUF3TXpFVk1CTUdBMVVFQ2hNTVJHbG4KYVhSaGJFOWpaV0Z1TVJvd0dBWURWUVFERXhGck9ITmhZWE1nUTJ4MWMzUmxjaUJEUVRBZUZ3MHlOREF4TURjeApPREF4TURCYUZ3MDBOREF4TURjeE9EQXhNREJhTURNeEZUQVRCZ05WQkFvVERFUnBaMmwwWVd4UFkyVmhiakVhCk1CZ0dBMVVFQXhNUmF6aHpZV0Z6SUVOc2RYTjBaWElnUTBFd2dnRWlNQTBHQ1NxR1NJYjNEUUVCQVFVQUE0SUIKRHdBd2dnRUtBb0lCQVFEZk1ad3NJa0NHVjNPK3pGUXhTMktkWVZZZFFwZzBJbFhydFVGTnlLM05OaEFOZTgwZgpjb3gzUWEyYS9lSEY3aU56RXRJQ3JzK21lNi8yWW9yMW1lVzMwVXlCYVkxN1pXV0xpTFJzZFRhSmZqdDMxVmt5ClQwR1RueW5xNndQc3p4dit2UkJMb283c3FOZmdQVG5DMWlpTGNKMjBxYUtPY2ZmaHhFdG52YUpoMzUySmlHb0UKSWdITm9GWWpIdVlSeHpaYzRIOGhHOXFVa2NvU3Fiemp2UFBBTTFpQ3gvcC9FT3Y5NVltcVlTRndRWVBucm96WQowaS9nSEpqUElsbDRTT2xUaUE1bVZ1NUtNbnBJMS9hMDVhRUo2MWI3RjN5czVYVUlRdHRBWlZwOHhoTEdsUUFtCm9PVERqM204b3Q3eTNLVUVCeW9NeUVKNVZ5NzJLWjAzZlpmZEFnTUJBQUdqUlRCRE1BNEdBMVVkRHdFQi93UUUKQXdJQmhqQVNCZ05WSFJNQkFmOEVDREFHQVFIL0FnRUFNQjBHQTFVZERnUVdCQlRpeXFSWGJoMjhQZnZ5aURvRApmSHc1YnB1c3pqQU5CZ2txaGtpRzl3MEJBUXNGQUFPQ0FRRUFud3ZJamNSZlltVHBCL2ZFbC9nbmNGVnZJYU1ZCjZPRHVhdGNGQ0FLS1N1MTdHekRNS3NXb3B2Vi9hSllNUTlYZjhFSWpyUTJrc3J6bWZaWWNaMDRpUmdhZVovWTEKREU0WVl2dHp6U29XUE5aS2UyWGdTbkhGRGtaU3FzMUMrRkdSL25UeStWOHphMzkzSVAyOGFNalVRSEZhQU9wTwpkRUVCc0p5TmM2RjNlbldXRHJIOUJhOU1LRGlWdEZOVmJTSnZkekhIT1g1L3htdmc0VS84M0tyem1NN2pLeDBMCmZsejVFbVlOODFQRWFpTGJJVDVmeXBROGx6N0I4QVIvcDBDTzczREhpTUl1d0NqRFVEY3FVcE9sYzZLdDlLQXoKTGhUVzlnUTRzKzdLak5WcFlXcEd2OCttaDFNS0drZUpSYmpUQkFMekJFcnR2U1k1MjhlbHd6eFVyUT09Ci0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K
+    server: https://6f441023-ed25-44df-9b0f-728c4fb799ab.k8s.ondigitalocean.com
+  name: do-nyc1-airflow-si
+- cluster:
+    certificate-authority-data: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURKekNDQWcrZ0F3SUJBZ0lDQm5Vd0RRWUpLb1pJaHZjTkFRRUxCUUF3TXpFVk1CTUdBMVVFQ2hNTVJHbG4KYVhSaGJFOWpaV0Z1TVJvd0dBWURWUVFERXhGck9ITmhZWE1nUTJ4MWMzUmxjaUJEUVRBZUZ3MHlNekE1TWpReQpNVEkwTURoYUZ3MDBNekE1TWpReU1USTBNRGhhTURNeEZUQVRCZ05WQkFvVERFUnBaMmwwWVd4UFkyVmhiakVhCk1CZ0dBMVVFQXhNUmF6aHpZV0Z6SUVOc2RYTjBaWElnUTBFd2dnRWlNQTBHQ1NxR1NJYjNEUUVCQVFVQUE0SUIKRHdBd2dnRUtBb0lCQVFEU2tFb0VlK2x0UHp4QjdoTjVDZUUyWE5mL3JFVm9XSUp5eFV4L0VQMmhEYXhtZUZ5SAp5K3FoUVRoU3dzRkpvUmcyUk9kcFpQTXd3N0dXd0xuSGV6THBJQVN3RDllRGJXbEp4ZVdnRHI1ZFoyNU04NmtQCkNUdW4rWTZYY3gyeXFQTEUzQlhrMjRJTHRwU0dqejVOVkZrMm5TSWYzZS9qeXBzYnlHS3hkZi9GeUxubjY2L3YKM2pvMjVGTW9DYWdiOWdBZUhGTnhsM0pHczhZU29vdWtZNEhJR3p0S0xlRTNvMjN6SnZqUjZydVhqT2s5dHo1VgptWWFoZjh4ZnZXMzNlTlFBSmgxckQ0L3pnanlpS0tqTnB1c2NIaVh2L1pzKzFHM1BRQ1lPdzdoRndrTG1mSjVXCnVKZWJwYm10M1czNmtLS0xDK2hwakFteStGYzFHcmN2N3BQaEFnTUJBQUdqUlRCRE1BNEdBMVVkRHdFQi93UUUKQXdJQmhqQVNCZ05WSFJNQkFmOEVDREFHQVFIL0FnRUFNQjBHQTFVZERnUVdCQlE0NHF6MTZ4Rm84RExSYmtTKwpHK3ExR1lZdHd6QU5CZ2txaGtpRzl3MEJBUXNGQUFPQ0FRRUFKM3hWVW1tbTI0MmIvdG9BdFA1VzBlckpud1BECi83Wjh6Skh5VDZjcU1uN3BwV0djaGkrQ0JSTG8vcnpZSkpCVTkwK3R0eTI2ajFFc0NRT1VNamNBSHpkcFFRb3YKNWczRlBEeG5Za2g0Vm8rSEF5TFgwZUp5Zlg5SlBDc20rQWFSRmNrcERJMFZmeFNORmg1dTZ4R2pSQk9HRjlUZApuNWJyWVhZOE14ejNKRzc3TVVFL2hWckQ3dFRCZW8vYWtjcHc4QUJ3VzB2clZySktnYVFBRUhoZ0RnMDJoTHoyClpDcVI3b043TEJEbWlqRmp4UWRJc3VWRVpKZEs1U0ZZR0RYZDVwYThmZTlvbFYyZkdkQVZ2QWVtN0hVejFDMGIKamFhdFZxTjY3RXROUS9LVXRnTnNOTEp1VXhabFNmUnR5ZEhreGc4Uy9WTW5RRURaanAwTlpsSWZWZz09Ci0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K
+    server: https://a9dea9d8-f725-4a6d-aee4-ed2ca0f63e7b.k8s.ondigitalocean.com
+  name: do-nyc1-flask-app
+- cluster:
+    certificate-authority-data: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURKekNDQWcrZ0F3SUJBZ0lDQm5Vd0RRWUpLb1pJaHZjTkFRRUxCUUF3TXpFVk1CTUdBMVVFQ2hNTVJHbG4KYVhSaGJFOWpaV0Z1TVJvd0dBWURWUVFERXhGck9ITmhZWE1nUTJ4MWMzUmxjaUJEUVRBZUZ3MHlNekE0TURVdwpNVE13TWpoYUZ3MDBNekE0TURVd01UTXdNamhhTURNeEZUQVRCZ05WQkFvVERFUnBaMmwwWVd4UFkyVmhiakVhCk1CZ0dBMVVFQXhNUmF6aHpZV0Z6SUVOc2RYTjBaWElnUTBFd2dnRWlNQTBHQ1NxR1NJYjNEUUVCQVFVQUE0SUIKRHdBd2dnRUtBb0lCQVFEZUhKN1lXL1QyNDhtR0t3THRaUU01SU1sTUVEKzZjYjlvSXZWZG5kc2Z1RUo5L3FGRwpGZTgvdmZnTEdLck9hdE1aTnJBN24rRW0ra1ZhSWt4NFRCbHZTRmRqVnRZL1ZkMmQ5YUMxdy9DUUkraUc5M2g3CnhhWjRnbTJzSGM1eEpPcjZ2TWUwNFNUMG50UEpmbC93Tmk3NnRaQjdSbmxya3NoOHBoMHdsemdCNmdJZU1jQ3AKVlZEYmNzcWQyTVFuN3dyc04ycC81SE15Zjh3MW1sMWtSL0VQTEw1YldpU1hHVjg1ck56dlhNMGZQak05SjdoZgpFOE1mcE5jQVIxa01UR0ZhMElVbmNaKzBvYTlhckI5RXNYSE91OHVpVlVvb3BrdXRmb3ExOGpuYVhxMDdaemhPCkZKMGZHREk3V3ltYjQ3ODlCcjlNcHgrMUxpUWZ5R2hFZTRZWkFnTUJBQUdqUlRCRE1BNEdBMVVkRHdFQi93UUUKQXdJQmhqQVNCZ05WSFJNQkFmOEVDREFHQVFIL0FnRUFNQjBHQTFVZERnUVdCQlNzeGpsU1BLa1dOQzZacE05dQpKakMrLzBZckpqQU5CZ2txaGtpRzl3MEJBUXNGQUFPQ0FRRUFoaU5wNkNDUWYwcUpTVkQyazh5YVpvbFJnUGVjCnI1akRpdWVQR1ZKcDYrenZ6WGwrem8yVmpMVDZzbjJ4S010VWUwMUpEbnd5dTZCNGsydGNsdkJnT0JLZmJVaTAKdkpETlpheUp3R0RodXdWQXM1VDJKSS9uTDdtVEVjOUtMQ21wUkNVbzJpaVNIWk5rZmpHSTJGNllPTVFkM1FjbgpseWFqSGdDYzJPUndOT3JqeHAyd2RXK1NXK1I3YWJ3RmVQSnh0MHlHdmordm1YZnA4TmtJZEVuUEsvMDBzU0lNCjlWV0lrcWhJRW1mdWFZVmJ1cmZvM0xWZk1QSklVRHZlUHpEZ05vckNadm9DNklOVng5SFBDbkhMQXpmcDN4a0EKNWlrNGdWbUpUTUk4NFYxZnFaaHcxYm5RVzVXMFRVZHpKMy9ZZHBsZFg4RkUyUCs5TTNIWDNWb0Z2dz09Ci0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K
+    server: https://0e4677bc-8747-459e-82cf-d6e8ba1ef90c.k8s.ondigitalocean.com
+  name: do-sfo3-airflow-k8s
+- cluster:
+    certificate-authority-data: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURKekNDQWcrZ0F3SUJBZ0lDQm5Vd0RRWUpLb1pJaHZjTkFRRUxCUUF3TXpFVk1CTUdBMVVFQ2hNTVJHbG4KYVhSaGJFOWpaV0Z1TVJvd0dBWURWUVFERXhGck9ITmhZWE1nUTJ4MWMzUmxjaUJEUVRBZUZ3MHlNekV3TVRNdwpOVEF6TWpkYUZ3MDBNekV3TVRNd05UQXpNamRhTURNeEZUQVRCZ05WQkFvVERFUnBaMmwwWVd4UFkyVmhiakVhCk1CZ0dBMVVFQXhNUmF6aHpZV0Z6SUVOc2RYTjBaWElnUTBFd2dnRWlNQTBHQ1NxR1NJYjNEUUVCQVFVQUE0SUIKRHdBd2dnRUtBb0lCQVFEVU5ZTDhjYitCS0pSVDhUS0ZzV1JXM1UxbXR3UjRUV1ZuRjNHVElvRitLMGlmMFZpUwphNXIvV1BRTHdtY3hvQWQwMzh4VTh1VndqY05OU3hVYUpqemJQRklVUWlET0xvYUMrTDNOS1lkd2dBUjVTcldGCkpzYU5XOVZFZVJDbGlnT1BTTTVSbldLYXFsZkxNakgxUHRSUW9FUjBrbEk4V1pBNjNpZ2I0MUxndjNrc0Y3UkoKTWhMVFYyT0JSRHJSZEV1Vi81cGdnd1AyNDBPOC9IandkcTcySHgvWnZkc0liZlZqeVAvaFJ1Yzg3YVUweXEyKwpZTFN0Q3JYVktSQUpUdE03MlJ5Q3B1c2lPQ2xTejJEYXVLOXloS1QyQXJiamp3Uklzd2Z3K2lyWEZOTHFOTGFSCmhoYUpwMTVEd3gxZDNaMVFwZTFsVGZtVy96dm9kQVFET3hyeEFnTUJBQUdqUlRCRE1BNEdBMVVkRHdFQi93UUUKQXdJQmhqQVNCZ05WSFJNQkFmOEVDREFHQVFIL0FnRUFNQjBHQTFVZERnUVdCQlJ1eEtkdndmeUdFWDQycUFDZQoxbG5wN1F2OGdqQU5CZ2txaGtpRzl3MEJBUXNGQUFPQ0FRRUFnVE5lM1FZVjM4cC9Pd3oyM0dOQXVmUm5UOVFzCmkvU0R3MU9kLytDeWd0WUVvVGNFSXZVUWlvdWcvK1ZNYXBqMUtUQm5RZWFxUTdoeENweHgrTUI4KytpRVdLOUQKSS9oWG5oVXFkL2xiN0xVczlIN1NKaUU1OTk4UEtTUTlRMXpVcitDdFlpQjIyM3gzUnZ2d1F2SWtVUHN5MXdjTwphY0ZnQ25jQnljQ1ZQbE5yM1dQMGdCWGNjZnNSRTJ1UHpzaWprSzYvZDQrMVRmSUFXMUxTQnlDbVpjQkF3QzluCm15cjFUdXFKZ2huZEM3eGJLUW9JVzl1bnRqYnowVEwxVGV1YWVkZ2I0T3gxWndMY1pMMnc2QW5mRVVBWkFDanIKYlJuaVVpLytmZFpaaVNwZkFMWWtmQlZWMUVLZyswNFRaY29GZWtQSGhQdjFBRUUzVklqOC8yWGVEdz09Ci0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K
+    server: https://d85da054-7c6d-4c0f-b623-aa048482ec85.k8s.ondigitalocean.com
+  name: do-sfo3-k8s-1-28-2-do-0-sfo3-1697173327881
+- cluster:
+    certificate-authority-data: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUVMVENDQXBXZ0F3SUJBZ0lSQUxGRWRKM1J2V2dtenFTcldScnBWKzR3RFFZSktvWklodmNOQVFFTEJRQXcKTHpFdE1Dc0dBMVVFQXhNa05ESTRNR1JsTlRRdE1EQXpOeTAwWkRJM0xXSTNOVFl0TjJRNU9UVm1NMkV4TlRJeQpNQ0FYRFRJek1EUXdPREF3TURReU0xb1lEekl3TlRNd016TXhNREV3TkRJeldqQXZNUzB3S3dZRFZRUURFeVEwCk1qZ3daR1UxTkMwd01ETTNMVFJrTWpjdFlqYzFOaTAzWkRrNU5XWXpZVEUxTWpJd2dnR2lNQTBHQ1NxR1NJYjMKRFFFQkFRVUFBNElCandBd2dnR0tBb0lCZ1FDUmlPdjNTTWhacFNWSDZVS2RMZ2psTXZiVUVKcXYvOVhERUZPVAp0V3YvNDJhd1YwUW0zUzVGK1FhM3l6UEQ5ZTREdGJyN2lmMmRMQ1M4OXN3Yy9SeUVnS1R1WU1tZlcxMTdhb1pwCjVKMnlBUlJsMG9ERjRuU08yMnB1L0NjclB4TkxxZDV2UzZXS0JwYnVSQ1hRZzk3dVBiQi9wejFGZ0xocjJNRkEKOWJQOU5rMUlDaGY5bE5odjFMYUxMZE5DRmpxRThUYUxEZll3T2hISzl6a1djRFJMTVJCNHErUnV6MFhIM0xkRgp4L2RxV3QwNElkdSsxS2FyYnFTdDhoVS9TVG5SaGNWeW5ieU0vRTA3ckJVZTdJeUlsVlp1NWY1Z3IwNFNDYmI0CnpINmk5OFVJQ2prdG9CVnJ6V0dja2pJeDZsMVdXVlkxVXo3NHlkbG5CUmVWaUFJUEVHSlBzaXdodzI5RzE0VjgKaUVkU0x3NnBXait1cDBUSzFKZjRheXMreER6OXVRc0plVzd3V1ZqbkRFZHhFSUVDQVp1UzJKM0hsejEyWlY4OApYYUdPaVNxVUxKUWtrWnpCWHJrdlJhKzBrRTNuYlZ4amJMMXlJM2RzeTFCMnRUcGVYU0Ixb3dncHVMdi9nbzhECmVVOUV3bndWdlVtRTVrb3pwVS80bG9weEpPTUNBd0VBQWFOQ01FQXdEZ1lEVlIwUEFRSC9CQVFEQWdJRU1BOEcKQTFVZEV3RUIvd1FGTUFNQkFmOHdIUVlEVlIwT0JCWUVGT3MreWN0ejFSbWwzT05YUXN4eWMwZTd2OHBLTUEwRwpDU3FHU0liM0RRRUJDd1VBQTRJQmdRQnpuMEFKU1FSOGJxU0RkRU1xTnVSSUZ6djVhdjBmQnJKQ2thRHMyeVRICjNjRDRNelYzKzBHQXdUVFpjZlZVaWl2RUZYbE9nLysxYVFGNGxpMnJ2a0JkeWtwODBhK2hkQzMwTUs3NXBqMzgKUzVpNyt6ZXhvTTJFZW9HVUxqY09STk5OeWN0dDl5elNRQllpbXpCR1NhT2E1REdWU1ZIbjgzd0xEY3A2MFhnVQptTHQxUkNuTnVocU1vQ2pqU0cxMVdjdFRvVEFwczRmV2tENmR0YmppYUxuSEZJaVZjQWRtOGZ6Y0Z0bjhTUjdyClZBY1dUZWN3Z0V3aGlIVkxNTzhvR0QrUG1qaFlqWGZaRnV6UEFTSFhMdnNZRG9XdWU2VG45U1llOHRTeXAycEYKZHVjZ2oyN3BFN0Noa013OWFRQXlNZFh2bWhYY1oyN2ZnenY5aCtvUmdiK1Rxb2JybDF0T3FJSTNhS2pLUnB0VwpEMnZidTFoNDdIRlVSSktRYk52U21ZQmFJenltbDZ2bjJNV0NpK2dBdjhtdXZVaGhPcFNvZ2kzYUszcEQvbUFOCmhCR1JQRm5rTzVkcVJxVFhHWGxtdWFvVHduWS80RXp6V084VitmSUxDZTU3dkgxZGhSaGpCZUtuRzRyQ1JsSWUKa3lkWHlNdkFDYnNhL2ppdXF6WlBCbEk9Ci0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K
+    server: https://34.125.116.23
+  name: gke_share-inspire-k8s-382622_us-west4-a_my-cluster
+- cluster:
+    certificate-authority-data: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUMvakNDQWVhZ0F3SUJBZ0lCQURBTkJna3Foa2lHOXcwQkFRc0ZBREFWTVJNd0VRWURWUVFERXdwcmRXSmwKY201bGRHVnpNQjRYRFRJek1USXhOVEF3TURNME9Wb1hEVE16TVRJeE1qQXdNRE0wT1Zvd0ZURVRNQkVHQTFVRQpBeE1LYTNWaVpYSnVaWFJsY3pDQ0FTSXdEUVlKS29aSWh2Y05BUUVCQlFBRGdnRVBBRENDQVFvQ2dnRUJBSys1CkVxNVh6aHhmVUZQSXhUVjVTWTVzODNSTUNLSGJ0OEtXcm0rRSs3NnZQUlRTMHBNN2pBSVdCQkRZSkdtK1ViT3MKWGdWVm1IMkpXRW9mRCs5cHBBYXQ3VTRGNWgvY0FtMzRzUk9oZ0dneGRSWkw4VUt3WXhCSXVsT0JpUTVzYzBVMgpObHRXSTlhU29EV3VmQW54SkVhbE9nUzM0amlTV3RWTWF3d3d2Y3FIM2RTTG5CcTBFb0xORitHSVVTZ012dE1QCi9BdGFBTWh0UmhWdFdRQWZzZnAyMlBaaFhTZFMzckhXV0tpWjBYR1g1MjNhUXpMMVJtTENSbDdqZ1ozSWNwWHcKNGNqa3hQd2YwT2oxSitUWkpocHhVV1RjekdRa1dBMTk1UDZvR2J3WkNYTDhpb2tJRlFCUTJ4QWU4VnV0RFBkcwpMZDdlZDh2TldiUi9GN2N1WXhzQ0F3RUFBYU5aTUZjd0RnWURWUjBQQVFIL0JBUURBZ0trTUE4R0ExVWRFd0VCCi93UUZNQU1CQWY4d0hRWURWUjBPQkJZRUZLcWdYT3lpZXZCQ0UzL2d3bExBU1pVQzdGN1RNQlVHQTFVZEVRUU8KTUF5Q0NtdDFZbVZ5Ym1WMFpYTXdEUVlKS29aSWh2Y05BUUVMQlFBRGdnRUJBSU41eExVSzRiUmdBYXRiNWdxVwp3STEvUW00cVJtZjcvNlRiVlNBdFgyTkxRMHljNFJqbGJVVVhramFZNlZRZ1NBblJsWnEzcUhSSytSM2hIQWRpCnBZQ2ZDOTIxVWptaTl3Z3FXZnNxSUxwTXBQZEd0QjJZVG5rdVVyTmRDSWpaWllNK2hZNWM2ZElXV0IyL05zdG4KSkwxcW9lT1F1VHFQaWxhUTY3VEx5c1lJWVpwVEt5aWVKL0FQWnVtWkNSWTNHR0RaWlNqWUJyYlZybzZaTkNabQo0WWpjOVRmRUtKZ2dvZEZLOUFiZTlVdU1MQUxFTXE3Z3U5SGNWaXhJVHc5Y3RBS29XREM3RVBxZm84YmVIZG9HCmY4MUNFTzk2OWJYU0NhMHNXYjhiSmV6cm5CMjFDdmh6aTlnR1JqTDZ3V3BTQmVRY2tKdVFBQlVmQ3Rpa1VLQ1kKakRZPQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg==
+    server: https://127.0.0.1:50003
+  name: kind-airflow-cluster
+contexts:
+- context:
+    cluster: do-nyc1-airflow-si
+    user: do-nyc1-airflow-si-admin
+  name: do-nyc1-airflow-si
+- context:
+    cluster: do-nyc1-flask-app
+    user: do-nyc1-flask-app-admin
+  name: do-nyc1-flask-app
+- context:
+    cluster: do-sfo3-airflow-k8s
+    user: do-sfo3-airflow-k8s-admin
+  name: do-sfo3-airflow-k8s
+- context:
+    cluster: do-sfo3-k8s-1-28-2-do-0-sfo3-1697173327881
+    user: do-sfo3-k8s-1-28-2-do-0-sfo3-1697173327881-admin
+  name: do-sfo3-k8s-1-28-2-do-0-sfo3-1697173327881
+- context:
+    cluster: gke_share-inspire-k8s-382622_us-west4-a_my-cluster
+    user: gke_share-inspire-k8s-382622_us-west4-a_my-cluster
+  name: gke_share-inspire-k8s-382622_us-west4-a_my-cluster
+- context:
+    cluster: kind-airflow-cluster
+    user: kind-airflow-cluster
+  name: kind-airflow-cluster
+current-context: do-nyc1-airflow-si
+kind: Config
+preferences: {}
+users:
+- name: do-nyc1-airflow-si-admin
+  user:
+    exec:
+      apiVersion: client.authentication.k8s.io/v1beta1
+      args:
+      - kubernetes
+      - cluster
+      - kubeconfig
+      - exec-credential
+      - --version=v1beta1
+      - --context=si
+      - 6f441023-ed25-44df-9b0f-728c4fb799ab
+      command: doctl
+      env: null
+      provideClusterInfo: false
+- name: do-nyc1-flask-app-admin
+  user:
+    exec:
+      apiVersion: client.authentication.k8s.io/v1beta1
+      args:
+      - kubernetes
+      - cluster
+      - kubeconfig
+      - exec-credential
+      - --version=v1beta1
+      - --context=default
+      - a9dea9d8-f725-4a6d-aee4-ed2ca0f63e7b
+      command: doctl
+      env: null
+      interactiveMode: IfAvailable
+      provideClusterInfo: false
+- name: do-sfo3-airflow-k8s-admin
+  user:
+    exec:
+      apiVersion: client.authentication.k8s.io/v1beta1
+      args:
+      - kubernetes
+      - cluster
+      - kubeconfig
+      - exec-credential
+      - --version=v1beta1
+      - --context=default
+      - 0e4677bc-8747-459e-82cf-d6e8ba1ef90c
+      command: doctl
+      env: null
+      interactiveMode: IfAvailable
+      provideClusterInfo: false
+- name: do-sfo3-k8s-1-28-2-do-0-sfo3-1697173327881-admin
+  user:
+    exec:
+      apiVersion: client.authentication.k8s.io/v1beta1
+      args:
+      - kubernetes
+      - cluster
+      - kubeconfig
+      - exec-credential
+      - --version=v1beta1
+      - --context=default
+      - d85da054-7c6d-4c0f-b623-aa048482ec85
+      command: doctl
+      env: null
+      interactiveMode: IfAvailable
+      provideClusterInfo: false
+- name: gke_share-inspire-k8s-382622_us-west4-a_my-cluster
+  user:
+    exec:
+      apiVersion: client.authentication.k8s.io/v1beta1
+      args: null
+      command: gke-gcloud-auth-plugin
+      env: null
+      installHint: Install gke-gcloud-auth-plugin for use with kubectl by following
+        https://cloud.google.com/blog/products/containers-kubernetes/kubectl-auth-changes-in-gke
+      interactiveMode: IfAvailable
+      provideClusterInfo: true
+- name: kind-airflow-cluster
+  user:
+    client-certificate-data: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURJVENDQWdtZ0F3SUJBZ0lJQ05UdlpoQ09XM0l3RFFZSktvWklodmNOQVFFTEJRQXdGVEVUTUJFR0ExVUUKQXhNS2EzVmlaWEp1WlhSbGN6QWVGdzB5TXpFeU1UVXdNREF6TkRsYUZ3MHlOREV5TVRRd01EQXpOVEZhTURReApGekFWQmdOVkJBb1REbk41YzNSbGJUcHRZWE4wWlhKek1Sa3dGd1lEVlFRREV4QnJkV0psY201bGRHVnpMV0ZrCmJXbHVNSUlCSWpBTkJna3Foa2lHOXcwQkFRRUZBQU9DQVE4QU1JSUJDZ0tDQVFFQXVNYlRwTldKWFV1TktkdDMKTnFRTURXak1GZWNxUDAxbVVGR1dVZkdiMmRtU0R3UWNJdGJGQXd1V09QSVJkWUg2eWhmOFR2OXR5Qm8vdVRxWAp5UHppbndqazBSNEFlOWpzSTBSc3U1QmxtZDI3UytFWW93R1d3cHFGZUl6SzVPcUt4Z0pNUkN4K2pac1lCNUdrCmNUUXlldy9FdlkxM3FYalE1QXdhWTRSS3F0anVLNUJ4V2Q4SzhrQmxwbTNyK3NIeDYvS0NzdDBIMFNBWDcwUFoKRkUxZHRMc1ozTnYrZFBSUGllY3JHdmMwOG1lR2t6OVhPNEtQckg1ZnVJemM2NUdaMTVmZktKR1VqcnRDQW9nYgpGMUhpNFpnMkoyaVZBSCtZdmdmeW1ndldlUHJWV0VXelVCZVRhMGhMV3RBM3FhWGllRDJTS2VxMHFNOE9MUmczCkxhM25SUUlEQVFBQm8xWXdWREFPQmdOVkhROEJBZjhFQkFNQ0JhQXdFd1lEVlIwbEJBd3dDZ1lJS3dZQkJRVUgKQXdJd0RBWURWUjBUQVFIL0JBSXdBREFmQmdOVkhTTUVHREFXZ0JTcW9GenNvbnJ3UWhOLzRNSlN3RW1WQXV4ZQowekFOQmdrcWhraUc5dzBCQVFzRkFBT0NBUUVBQ01yT2pTdGZQY0taSDV6OVMvZlhVZlg4WSttZmRuTTR5Tjd3ClhPMXRCV1NiZVBLcGNYd1pab0hReHRhTS9FRUV1RFYwMVUzYVVWLzlPb0w3TkxvanlZN2RVVjBEOTB4cHVTeFgKc3k5MWhaL2VsWlJENHZBSWd6MHQxUVNydjBaVjV6UUppWGtiQk42RE03QUF6NlkrMjg2SHVKWkZBclNuSUFTMgpXNFJSNUI5VE9hM2JPU2g5bkUzRW0yR0V5QlkxVE45NExZTU9iNUNMc0NTQkZPWm16MGE2cklZaHcvL1V4N3JhCmQvVGRkZ2xPRTNKcnp4SnJvVHBxa0wxTVBiZ3QveHZVMHpKM1ZjdU0vN3pJVWcxYnIwcVBQS3E3b1oyWUNzQ2MKSFQycldXSVFIam84M1JrbWxtckZQZUtkWlEwekRhUGQvYjFCdGEyTWxXOXNSbmdUNmc9PQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg==
+    client-key-data: LS0tLS1CRUdJTiBSU0EgUFJJVkFURSBLRVktLS0tLQpNSUlFcEFJQkFBS0NBUUVBdU1iVHBOV0pYVXVOS2R0M05xUU1EV2pNRmVjcVAwMW1VRkdXVWZHYjJkbVNEd1FjCkl0YkZBd3VXT1BJUmRZSDZ5aGY4VHY5dHlCby91VHFYeVB6aW53amswUjRBZTlqc0kwUnN1NUJsbWQyN1MrRVkKb3dHV3dwcUZlSXpLNU9xS3hnSk1SQ3gralpzWUI1R2tjVFF5ZXcvRXZZMTNxWGpRNUF3YVk0UktxdGp1SzVCeApXZDhLOGtCbHBtM3Irc0h4Ni9LQ3N0MEgwU0FYNzBQWkZFMWR0THNaM052K2RQUlBpZWNyR3ZjMDhtZUdrejlYCk80S1BySDVmdUl6YzY1R1oxNWZmS0pHVWpydENBb2diRjFIaTRaZzJKMmlWQUgrWXZnZnltZ3ZXZVByVldFV3oKVUJlVGEwaExXdEEzcWFYaWVEMlNLZXEwcU04T0xSZzNMYTNuUlFJREFRQUJBb0lCQUZkRVVDREJXU2JlejhTOQpDZ2ljWWJUVGtjK21aYVdRQUlwZWZnZ2xlOTNmaThQYnhRNFBNT3pIUkNPUTcvMzNiV0tWQVd5dDVrTmpZa1V4CkR3NjFvTEpMbVFYS2paL3dTMVk4c3IzQzdMbEdwM2FtME9QcmxEQkVtbFRjNmRaRGoxY0ZMcy9qMDhFOVJwUU0KalFXS0NXMWxmUjJvK3FMbmxJQ2YxcmE1ZkNwRGl2Y2dDc2JEUWdCanc1YWxmd1E1ZGpDTnIybmxZY201QjdJYgovNnljSmhRTnNXN21Wclg4ZWptK08rQXhQTzZhWDNxTG52WmpnMnlqYVN2TkRRWEtYK0xoWGpRb3JSK0plK2RyCjUrSFl5Z0RnODJNbVZsVjdWMng1S3BiTGhtT3dBWmIxZUtDTCtQdXd0ODhHMTRWVm54cFhvdXZXL1Fobm1UeVAKZW9RdVlRRUNnWUVBOWhIakdkSHpJNTlBOHBOUGhBUXR0eEZoRm42MTA1Z2RvZ2NNNjdUM3Q5ZnhKMFBzeUxoQQoxQVc2azh0bEVtY1ppQlpjNDBzNHRxRXFvNWNXbXZnS0Z5eTlEcTFueXNCS2h5aWtJUTFXRm9XcEE4NisrMTYyCjdGb2l1QzBybHluK1k0UFl4YVI1Qm1uK2EyWnNHTnYxVythQzY3VERtMDhyV2JNdHkxWW53ZmtDZ1lFQXdEdTYKYldBODBjb3UyN3NibEl1bU5SU2hiM01KeTU3QVNDamxNajlITTRZMkZkT1BhMzYrRVVSUnV2emkwUFlyaVhiRgpob1BTQVNQaWVhT3hlR0laYllSRTN2MzhEbXQzVVhDTjVqVWVjQnZMVElPNUVpZ1d4cWo0QndPTndxZ1BaQk5iCnFZam82T25xNVhMWTZzTCtmL1B1YWxscHVORk1GaHF5RGZ5aTRxMENnWUVBNGh3cm42VkJrMkVhTUF6WEMwcy8KcXJIb2tlQWJPblRUL2ZnV2tseTNLQkxnd0tEMDZyZ01zZ2NWbkF0Uk02alRXQzZjYWl2TDBGMm1MYTUvRWlXTQpPQ0ZmRkNhWmNrQmgrM0tINXVzM1NQakhCdjJxbHBkQTVVd3FEUzFNbWRuM3JRQVJhQU9yUmc2TnY2amMrYmJjCjdmYVNKUDcwb3prTGI2QnJHeVp1NEJrQ2dZRUFyQUFGUTc0N1RQN1p4SE43THdOdzJNZTMxbStaRVI3Zkx2R2cKZWNBU3BqQnREa1I0YkJkQVcxVEV5RWxqYk5NR2kzM0JLU1dqYnErOEFWaU0vNGpPOWFYR3RidU5ueDFhNm55SwpDclAyb3hyTFlZL3V0U2Mza2RNMzhaYWxiY2xQMUJ4YUJLeGlzWnd6TjgvMTlNQTZWU1JlYTd2TEU3bjVtVUdUCmxWNDZKQlVDZ1lBTlBpbFdJeXZLM05UdVRDRmlwdHZBZW82OTIrd3J1QUxXTzhmbDNONDNHRUZVdXlERVFUK2QKcVdXNnQwblZvbStpWC90QWI4cURLMk5ZRFBIL1pRZ0tzVGx2cGIyV2czV25DZkpSaXRxcTFQV0xYU0QrQXVzYQpNZ2xFQ3A5eUFYbnNUVFZpVVF0SFlLdWpLMUFvamJTZGlQMS9XalJQTXBvUG1YeUNvWUp0Smc9PQotLS0tLUVORCBSU0EgUFJJVkFURSBLRVktLS0tLQo=

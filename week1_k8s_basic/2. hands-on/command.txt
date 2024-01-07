@@ -2,7 +2,10 @@
 create flask app
 create dockerfile
 
-doctl auth init
+#https://docs.digitalocean.com/reference/doctl/how-to/install/
+create digitalocean pat & install doctl
+
+doctl auth init --context si
 
 doctl registry login
 docker build -t my-python-app .
@@ -14,7 +17,7 @@ docker push registry.digitalocean.com/<your-registry-name>/my-python-app
 docker run -p 80:80 registry.digitalocean.com/<your-registry-name>/my-python-app
 -----------------------------
 # Prepare web app deployment
-doctl kubernetes cluster create flask-app-yaml --tag do-tutorial --auto-upgrade=true --node-pool "name=mypool;count=2;auto-scale=true;min-nodes=1;max-nodes=3;tag=do-tutorial"
+doctl kubernetes cluster create flask-app-yaml --tag do-tutorial --auto-upgrade=true --node-pool "name=mypool;count=2;auto-scale=true;min-nodes=1;max-nodes=3;tag=flask-si"
 kubectl create -f deployment.yaml
 kubectl get deployments
 kubectl get pods
