@@ -1,0 +1,80 @@
+# cf. Operator Lifecycle Manager
+ - https://olm.operatorframework.io/docs/getting-started/
+ - https://github.com/operator-framework/operator-lifecycle-manager?tab=readme-ov-file
+ - https://github.com/operator-framework/operator-lifecycle-manager/blob/master/doc/install/install.md
+
+
+#######################
+# 1. Install OLM
+#######################
+git clone https://github.com/operator-framework/operator-lifecycle-manager.git
+
+# (Benefit) We can use the quick install command generating YAML that makes assumptions about the default catalogs that ship with upstream OLM.
+kubectl create -f deploy/upstream/quickstart/crds.yaml
+kubectl create -f deploy/upstream/quickstart/olm.yaml
+
+kubectl -n olm get deployments
+
+kubectl get packagemanifest -n olm
+
+
+
+#########################################
+# 2. Try to Install one operator
+#########################################
+
+Question 1. What is the output of the command below?
+$ kubectl get packagemanifest -n olm  | grep postgres
+
+
+# Instead of following https://olm.operatorframework.io/docs/getting-started/, we will use quick install command at operatorhub.io
+# Choose your favorites among the following Postgresql operator candidates. 
+One of them is not compatible to DO clound.
+
+https://artifacthub.io/packages/olm/community-operators/postgres-operator
+    - https://operatorhub.io/operator/postgres-operator
+
+https://artifacthub.io/packages/olm/community-operators/postgresql-operator
+    - https://operatorhub.io/operator/postgresql-operator
+
+https://artifacthub.io/packages/olm/community-operators/postgresql-operator-dev4devs-com
+    - https://operatorhub.io/operator/postgresql-operator-dev4devs-com
+
+
+Question 2. Which one do you choose? Which one is not compatible to DO cloud?
+
+Question 3.Read the article below, then answer with O or X:
+    https://operatorhub.io/how-to-install-an-operator#What-happens-when-I-execute-the-'Install'-command-presented-in-the-pop-up?
+    
+    My chosen postgres-operator can be used across all namespaces (O, X)
+    All application installed by operator can be used across all namespaces (O, X)
+
+Question 4. Tell the namespace in which your operator is installed. Why this namespace is selected?
+
+(Hint)
+$ kubectl get OperatorGroup -A
+NAMESPACE   NAME               AGE
+olm         olm-operators      34m
+operators   global-operators   34m
+
+
+Question 5. Install failed? What would be the reason?
+
+(Hint)
+$ kubectl describe csv ...
+
+
+#########################################
+# 3. Install Airflow using operator
+#########################################
+
+# Let's try to install Airflow using operator
+# We will learn this application with more detail next week.
+# https://operatorhub.io/operator/airflow-helm-operator
+
+$ kubectl create -f https://operatorhub.io/install/airflow-helm-operator.yaml
+
+
+Question 6. What is the output of the command below?
+$ kubectl get csv -n operators
+
