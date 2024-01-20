@@ -38,16 +38,21 @@
 ###########################################################
 # helm chart packaging
 ###########################################################
-
+   
    Update to the latest version: https://github.com/jitsi-contrib/jitsi-helm/commit/4b53d10d7e631596ad79685739f50f8597d5e34a
+
+   cd jitsi-helm
+
    helm dependency update
-
    helm package . -d docs
-   [See [Below] section for usual process]
+      - cf. See [In real situation] section for usual process
+      - cf. https://chartmuseum.com/docs
 
 
-   [This is a local practice process]
-   cf. https://chartmuseum.com/docs
+   [This is only a local practice process]
+
+   cd ~
+   mkdir charts
 
    docker run --rm -it \
    -p 8080:8080 \
@@ -65,32 +70,36 @@
       cf. The repository index (index.yaml) is dynamically generated based on packages found in storage. If you store your own version of index.yaml, it will be completely ignored.
 
    helm repo add chartmuseum http://localhost:8080
-   helm search repo chartmuseum
 
-   helm install --namespace jitsi istudiomeet-helm chartmuseum/jitsi-meet --values=values.yaml
+   PS> helm repo update
+   Hang tight while we grab the latest from your chart repositories...
+   ...Successfully got an update from the "chartmuseum" chart repository
+   ...Successfully got an update from the "jitsi" chart repository
+   ...Successfully got an update from the "kubernetes-dashboard" chart repository
+   ...Successfully got an update from the "jetstack" chart repository
+   ...Successfully got an update from the "ingress-nginx" chart repository
+   ...Successfully got an update from the "eks" chart repository
+   ...Successfully got an update from the "gitlab" chart repository
+   ...Successfully got an update from the "prometheus-community" chart repository
+   Update Complete. ⎈Happy Helming!⎈
+   PS> helm search repo chartmuseum
+   NAME                    CHART VERSION   APP VERSION     DESCRIPTION
+   chartmuseum/jitsi-meet  1.3.9           stable-9164     Jitsi Meet packaged for Kubernetes
+   PS> helm search repo jitsi-meet
+   NAME                    CHART VERSION   APP VERSION     DESCRIPTION
+   chartmuseum/jitsi-meet  1.3.9           stable-9164     Jitsi Meet packaged for Kubernetes
+   jitsi/jitsi-meet        1.3.8           stable-9111     Jitsi Meet packaged for Kubernetes
+
+
+   [Only when url of chartmuseum is publicly accessible]
+
+   helm install --namespace jitsi jitsi-helm chartmuseum/jitsi-meet --values=values.yaml
    or
    helm install --namespace jitsi chartmuseum/jitsi-meet --values=values.yaml --generate-name
-   helm install --namespace jitsi istudiomeet-helm ../../doc/jitsi-helm/docs/jitsi-meet-1.3.9.tgz --values=values.yaml
+   helm install --namespace jitsi jitsi-helm ../../doc/jitsi-helm/docs/jitsi-meet-1.3.9.tgz --values=values.yaml
    
 
    -----------
-   [Below]
+   [In real situation]
    helm repo index docs --url https://jitsi-contrib.github.io/jitsi-helm/ 
-   helm upgrade --namespace jitsi istudiomeet-helm jitsi/jitsi-meet --values=values.yaml
-   
-   cf.
-      PS C:\Users\daniel.hwang\Work\darim\jitsi-kubernetes\doc\jitsi-helm> helm repo update
-      Hang tight while we grab the latest from your chart repositories...
-      ...Successfully got an update from the "chartmuseum" chart repository
-      ...Successfully got an update from the "jitsi" chart repository
-      ...Successfully got an update from the "kubernetes-dashboard" chart repository
-      ...Successfully got an update from the "jetstack" chart repository
-      ...Successfully got an update from the "ingress-nginx" chart repository
-      ...Successfully got an update from the "eks" chart repository
-      ...Successfully got an update from the "gitlab" chart repository
-      ...Successfully got an update from the "prometheus-community" chart repository
-      Update Complete. ⎈Happy Helming!⎈
-      PS C:\Users\daniel.hwang\Work\darim\jitsi-kubernetes\doc\jitsi-helm> helm search repo jitsi-meet
-      NAME                    CHART VERSION   APP VERSION     DESCRIPTION
-      chartmuseum/jitsi-meet  1.3.9           stable-9164     Jitsi Meet packaged for Kubernetes
-      jitsi/jitsi-meet        1.3.8           stable-9111     Jitsi Meet packaged for Kubernetes
+   helm upgrade --namespace jitsi jitsi-helm jitsi/jitsi-meet --values=values.yaml
