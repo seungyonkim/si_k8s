@@ -1,0 +1,46 @@
+
+###########################################################
+# Ready to install jitsi
+###########################################################
+
+1. kubectl create namespace jitsi
+   kubectl create secret generic jitsi-config -n jitsi --from-literal=JICOFO_COMPONENT_SECRET=dakfjadskf31284731207dfkjlkadsjla --from-literal=JICOFO_AUTH_PASSWORD=dakfjadskf31284731207dfkjlkadsjla --from-literal=JVB_AUTH_PASSWORD=dakfjadskf31284731207dfkjlkadsjla
+
+   cd kustomize
+
+   (Overview kustomization yaml files)
+   
+   [030-deployment.yaml]
+      Search for PUBLIC_URL, then modify that to your FQDN
+   [041-humble-ingress.yaml]
+      modify hosts & host
+
+   kubectl apply -k .
+
+   Check running of jitsi:
+      kubectl get pods -A
+
+   
+--------
+2. Undeploy
+   $ kubectl delete -k  .
+   $ kubectl delete namespace jitsi  (Keep this for helm practice)
+
+
+
+
+###########################################################
+# cf.
+###########################################################
+
+[kustomization.yaml]
+
+namespace: jitsi
+bases:
+- github.com/jitsi-contrib/jitsi-kubernetes/doc/kustomize
+
+resources:
+- 041-ingress.yaml
+
+patchesStrategicMerge:
+- 030-deployment.yaml

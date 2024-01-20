@@ -1,0 +1,96 @@
+###########################################################
+# Ready to install jitsi
+###########################################################
+
+1. install
+
+   kubectl create namespace jitsi  (Skip if exists)
+
+   cd jitsi-helm (dir containg values.yaml)
+
+   helm repo add jitsi https://jitsi-contrib.github.io/jitsi-helm/
+
+   [playground]
+      helm repo list
+      helm search repo jitsi/jitsi-meet
+      helm repo update jitsi
+      helm show values jitsi/jitsi-meet
+
+   (Overview values.yaml files)
+      Search for publicURL, then modify that to your FQDN
+      Edit ingress: part
+      Review jvb: part
+      Search for publicIPs, then modify that to your FQDN
+
+   helm install jitsi-humble jitsi/jitsi-meet --values=values.yaml --namespace jitsi
+      cf. helm upgrade jitsi-humble jitsi/jitsi-meet --values=values.yaml --namespace jitsi
+
+
+   Check running of jitsi:
+      kubectl get pods -A
+
+
+--------
+2. Undeploy
+   helm uninstall jitsi-humble -n jitsi
+
+
+###########################################################
+# helm chart packaging
+###########################################################
+
+   Update to the latest version: https://github.com/jitsi-contrib/jitsi-helm/commit/4b53d10d7e631596ad79685739f50f8597d5e34a
+   helm dependency update
+
+   helm package . -d docs
+   [See [Below] section for usual process]
+
+
+   [This is a local practice process]
+   cf. https://chartmuseum.com/docs
+
+   docker run --rm -it \
+   -p 8080:8080 \
+   -e DEBUG=1 \
+   -e STORAGE=local \
+   -e STORAGE_LOCAL_ROOTDIR=/charts \
+   -v $(pwd)/charts:/charts \
+   ghcr.io/helm/chartmuseum:v0.14.0
+   Test: http://localhost:8080/api/charts
+
+   cd docs
+   curl --data-binary "@jitsi-meet-1.3.9.tgz" http://localhost:8080/api/charts
+   Test: http://localhost:8080/api/charts
+         http://localhost:8080/charts/jitsi-meet-1.3.9.tgz
+      cf. The repository index (index.yaml) is dynamically generated based on packages found in storage. If you store your own version of index.yaml, it will be completely ignored.
+
+   helm repo add chartmuseum http://localhost:8080
+   helm search repo chartmuseum
+
+   helm install --namespace jitsi istudiomeet-helm chartmuseum/jitsi-meet --values=values.yaml
+   or
+   helm install --namespace jitsi chartmuseum/jitsi-meet --values=values.yaml --generate-name
+   helm install --namespace jitsi istudiomeet-helm ../../doc/jitsi-helm/docs/jitsi-meet-1.3.9.tgz --values=values.yaml
+   
+
+   -----------
+   [Below]
+   helm repo index docs --url https://jitsi-contrib.github.io/jitsi-helm/ 
+   helm upgrade --namespace jitsi istudiomeet-helm jitsi/jitsi-meet --values=values.yaml
+   
+   cf.
+      PS C:\Users\daniel.hwang\Work\darim\jitsi-kubernetes\doc\jitsi-helm> helm repo update
+      Hang tight while we grab the latest from your chart repositories...
+      ...Successfully got an update from the "chartmuseum" chart repository
+      ...Successfully got an update from the "jitsi" chart repository
+      ...Successfully got an update from the "kubernetes-dashboard" chart repository
+      ...Successfully got an update from the "jetstack" chart repository
+      ...Successfully got an update from the "ingress-nginx" chart repository
+      ...Successfully got an update from the "eks" chart repository
+      ...Successfully got an update from the "gitlab" chart repository
+      ...Successfully got an update from the "prometheus-community" chart repository
+      Update Complete. ⎈Happy Helming!⎈
+      PS C:\Users\daniel.hwang\Work\darim\jitsi-kubernetes\doc\jitsi-helm> helm search repo jitsi-meet
+      NAME                    CHART VERSION   APP VERSION     DESCRIPTION
+      chartmuseum/jitsi-meet  1.3.9           stable-9164     Jitsi Meet packaged for Kubernetes
+      jitsi/jitsi-meet        1.3.8           stable-9111     Jitsi Meet packaged for Kubernetes
