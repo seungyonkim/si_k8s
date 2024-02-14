@@ -1,0 +1,30 @@
+---
+###################################################
+# Ingress
+###################################################
+kind: Ingress
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: jitsi
+  namespace: jitsi
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    # assign the ingress class
+    kubernetes.io/ingress.class: "nginx"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - 157.230.69.215.nip.io
+      secretName: tls-jitsi
+  rules:
+    - host: 157.230.69.215.nip.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: web
+                port:
+                  number: 80

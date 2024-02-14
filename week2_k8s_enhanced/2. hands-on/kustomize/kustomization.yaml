@@ -1,0 +1,8 @@
+namespace: jitsi
+resources:
+  - 010-jvb-service.yaml
+  # - 020-rbac.yaml
+  # https://github.com/jitsi-contrib/jitsi-kubernetes/issues/27
+  - 030-deployment.yaml
+  - 040-web-service.yaml
+  - 041-humble-ingress.yaml
