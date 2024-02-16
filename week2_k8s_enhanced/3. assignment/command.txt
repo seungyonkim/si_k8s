@@ -53,9 +53,6 @@ Question 4. Tell the namespace in which your operator is installed. Why this nam
 
 (Hint)
 $ kubectl get OperatorGroup -A
-NAMESPACE   NAME               AGE
-olm         olm-operators      34m
-operators   global-operators   34m
 
 
 Question 5. Install failed? What would be the reason?
@@ -64,9 +61,9 @@ Question 5. Install failed? What would be the reason?
 $ kubectl describe csv ...
 
 
-#########################################
-# 3. Install Airflow using operator
-#########################################
+#################################################
+# 3. Install another app, Airflow using operator
+#################################################
 
 # Let's try to install Airflow using operator
 # We will learn this application with more detail next week.
@@ -78,3 +75,32 @@ $ kubectl create -f https://operatorhub.io/install/airflow-helm-operator.yaml
 Question 6. What is the output of the command below?
 $ kubectl get csv -n operators
 
+
+###########################################################
+# 4. Then how to install postgresql, a stateful app?
+###########################################################
+
+We have a working knowledge of using helm. Let's use that.
+
+See. https://artifacthub.io/packages/helm/bitnami/postgresql
+
+
+Question 7. What is the output of the command below?
+$ kubectl get pods -A | grep postgres
+
+
+Question 8. Please scale-out postgresql as 3 instances. 
+After invoking the commands, send the same command above several times. What do you find something. Please describe that.
+
+
+(Hint)
+kubectl get statefulset -A
+kubectl scale ...
+
+
+Question 9. Please scale-in postgresql as 1 instance. 
+After invoking the commands, send the same command above several times. What do you find something. Please describe that.
+
+
+Well done.
+Thanks a lot.
