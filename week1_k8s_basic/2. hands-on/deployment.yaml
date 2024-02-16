@@ -19,5 +19,5 @@ spec:
     spec:
       containers:
         - name: flask
-          image: registry.digitalocean.com/shareninspireflask/my-python-app:latest
+          image: registry.digitalocean.com/si-k8s-registry/my-python-app:latest
       restartPolicy: Always
