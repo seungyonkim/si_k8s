@@ -19,7 +19,9 @@ kubectl delete -f ______.yaml
 kubectl create -f ______.yaml
 kubectl get service
 -----------------------------
+
 check the website
+0. initilize the database (your_host/init)
 1. The website is rending a Todo list
 2. A user can add a new todo item
 3. A user can delete a todo item

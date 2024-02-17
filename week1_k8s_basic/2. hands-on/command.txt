@@ -5,23 +5,36 @@ create dockerfile
 #https://docs.digitalocean.com/reference/doctl/how-to/install/
 create digitalocean pat & install doctl
 
-doctl auth init --context si
+doctl auth switch --context si-k8s-session
+doctl registry create si-k8s-registry
 
+# start a docker
 doctl registry login
 docker build -t my-python-app .
 docker buildx build --platform=linux/amd64 -t my-python-app .
 docker tag my-python-app registry.digitalocean.com/<your-registry-name>/my-python-app
-docker tag my-python-app registry.digitalocean.com/<your-registry-name>/my-python-app
+docker tag my-python-app registry.digitalocean.com/si-k8s-registry/my-python-app
 
 docker push registry.digitalocean.com/<your-registry-name>/my-python-app
+docker push registry.digitalocean.com/si-k8s-registry/my-python-app 
+
 docker run -p 80:80 registry.digitalocean.com/<your-registry-name>/my-python-app
+# docker: Error response from daemon: driver failed programming external connectivity on endpoint affectionate_sammet (b676f7f41a5a9b4cff45048d4894c4af32b53a88d56def297ee2317c575c4db4): Bind for 0.0.0.0:80 failed: port is already allocated.
+ERRO[0000] error waiting for container: context canceled
+
+docker run -p 80:80 registry.digitalocean.com/si-k8s-registry/my-python-app
+
 -----------------------------
 # Prepare web app deployment
 doctl kubernetes cluster create flask-app-yaml --tag do-tutorial --auto-upgrade=true --node-pool "name=mypool;count=2;auto-scale=true;min-nodes=1;max-nodes=3;tag=flask-si"
+kubectl config get-contexts
 kubectl create -f deployment.yaml
+#kubectl apply -f deployment.yaml to update
+#kubectl delete deployment <deployment-name> to remove
+#configure registry
 kubectl get deployments
 kubectl get pods
-kubectl logs flask-747f897874-467wh
+kubectl logs flask-55f4f6d88b-8z2g2 
 -----------------------------
 # Prepare web app service
 kubectl create -f service.yaml
@@ -32,3 +45,5 @@ external-ip
 set up secret
 kubectl apply -f secret.yaml
 kubectl describe secret postgres-credentials
+
+Remove Cluster
