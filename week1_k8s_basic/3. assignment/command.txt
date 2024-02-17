@@ -11,8 +11,8 @@ kubectl get pods
 kubectl create -f ______.yaml
 kubectl get service flask postgres
 
-kubectl exec <POD_NAME> --stdin --tty -- createdb -U <USER_NAME> todo
-ex) kubectl exec postgres-7d8659d485-xg2zm --stdin --tty -- createdb -U jonghyeok todo
+kubectl exec <POD_NAME> --stdin --tty -- createdb -U <USER_NAME> products
+ex) kubectl exec postgres-7d8659d485-xg2zm --stdin --tty -- createdb -U jonghyeok products
 -----------------------------
 # Remove old deployment and create new one
 kubectl delete -f ______.yaml
@@ -22,6 +22,6 @@ kubectl get service
 
 check the website
 0. initilize the database (your_host/init)
-1. The website is rending a Todo list
-2. A user can add a new todo item
-3. A user can delete a todo item
+1. The website is rending a product list
+2. A user can add a new product item
+3. A user can delete a product item

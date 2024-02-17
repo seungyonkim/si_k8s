@@ -5,7 +5,7 @@ import socket
 
 app = Flask(__name__)
 
-DATABASE = "todo"
+DATABASE = "products"
 USER = os.environ.get('POSTGRES_USER')
 PASSWORD = os.environ.get('POSTGRES_PASSWORD')
 HOST = 'postgres'
