@@ -22,6 +22,7 @@ kubectl get service
 
 check the website
 0. initilize the database (your_host/init)
-1. The website is rending a product list (yout_host/get)
-2. A user can add a new product item
-3. A user can delete a product item
+1. The website is rending a product list (your_host/get)
+2. Add a new product item
+3. Remove a banana from the list
+4. Send a screen shot of (your_host/get) page to Jonghyeok Kim
