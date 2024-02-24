@@ -12,6 +12,7 @@
    
    [030-deployment.yaml]
       Search for PUBLIC_URL, then modify that to your FQDN
+      JVB_PORT should be the same as the one of 010-jvb-service
    [041-humble-ingress.yaml]
       modify hosts & host
 
@@ -23,6 +24,7 @@
    
 --------
 2. Undeploy
+   $ kubectl delete secret jitsi-config -n jitsi
    $ kubectl delete -k  .
    $ kubectl delete namespace jitsi  (Keep this for helm practice)
 
