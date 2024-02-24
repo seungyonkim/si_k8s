@@ -1,3 +1,39 @@
+#----------------------------------------------------------
+# (Part 1) Install postgresql using Helm
+#----------------------------------------------------------
+
+We have a working knowledge of using helm. Let's use to install postgresql.
+
+See. https://artifacthub.io/packages/helm/bitnami/postgresql
+
+
+Question 1. Once it is installed, what is the output of the command below?
+$ kubectl get pods -A | grep postgres
+
+
+Question 2. Please scale-out postgresql as 3 instances. 
+After invoking the commands, send the same command above several times. What do you find something. Please describe that.
+
+
+(Hint)
+kubectl get statefulset -A
+kubectl scale ...
+
+
+Question 3. Please scale-in postgresql as 1 instance. 
+After invoking the commands, send the same command above several times. What do you find something. Please describe that.
+
+
+Question 4. How can we delete postgresql? Please write the command and execute that.
+    Command: 
+
+
+
+
+#----------------------------------------------------------
+# (Part 2) Operator
+#----------------------------------------------------------
+
 # cf. Operator Lifecycle Manager
  - https://olm.operatorframework.io/docs/getting-started/
  - https://github.com/operator-framework/operator-lifecycle-manager?tab=readme-ov-file
@@ -23,83 +59,40 @@ kubectl get packagemanifest -n olm
 # 2. Try to Install one operator
 #########################################
 
-Question 1. What is the output of the command below?
+Question 5. What is the output of the command below?
 $ kubectl get packagemanifest -n olm  | grep postgres
 
 
 # Instead of following https://olm.operatorframework.io/docs/getting-started/, we will use quick install command at operatorhub.io
-# Choose your favorites among the following Postgresql operator candidates. 
-One of them is not compatible to DO clound.
+# Candidates
 
-https://artifacthub.io/packages/olm/community-operators/postgres-operator
-    - https://operatorhub.io/operator/postgres-operator
-
-https://artifacthub.io/packages/olm/community-operators/postgresql-operator
-    - https://operatorhub.io/operator/postgresql-operator
-
-https://artifacthub.io/packages/olm/community-operators/postgresql-operator-dev4devs-com
-    - https://operatorhub.io/operator/postgresql-operator-dev4devs-com
+https://operatorhub.io/operator/cloud-native-postgresql
+https://operatorhub.io/operator/postgresql
+https://operatorhub.io/operator/cloudnative-pg
+https://operatorhub.io/operator/stackgres
 
 
-Question 2. Which one do you choose? Which one is not compatible to DO cloud?
-
-Question 3.Read the article below, then answer with O or X:
-    https://operatorhub.io/how-to-install-an-operator#What-happens-when-I-execute-the-'Install'-command-presented-in-the-pop-up?
+Question 6. Read the article below, then answer the questions:
+    https://operatorhub.io/how-to-install-an-operator#What-happens-when-I-execute-the-'Install'-command-presented-in-the-pop-up
     
-    My chosen postgres-operator can be used across all namespaces (O, X)
-    All application installed by operator can be used across all namespaces (O, X)
+    What is the purpose and meaning of the command below?
 
-Question 4. Tell the namespace in which your operator is installed. Why this namespace is selected?
+    1) kubectl get CatalogSource -n olm
 
-(Hint)
-$ kubectl get OperatorGroup -A
+    2) kubectl get sub -A
+    
+    3) kubectl get OperatorGroup -A
+      3.1) kubectl get operator -n olm --selector=olm.operatorGroup=olm-operators
+      3.2) kubectl get operator -n olm --selector=operators.operatorGroup=global-operators
 
-
-Question 5. Install failed? What would be the reason?
-
-(Hint)
-$ kubectl describe csv ...
+    4) kubectl get csv -A
 
 
-#################################################
-# 3. Install another app, Airflow using operator
-#################################################
+Question 7. Install one of candidates above, and what is the results of above 4 commands in Quesion 6.
 
-# Let's try to install Airflow using operator
-# We will learn this application with more detail next week.
-# https://operatorhub.io/operator/airflow-helm-operator
+    (Hint. Useful command to debug)
+    $ kubectl describe csv <csv-name>
 
-$ kubectl create -f https://operatorhub.io/install/airflow-helm-operator.yaml
-
-
-Question 6. What is the output of the command below?
-$ kubectl get csv -n operators
-
-
-###########################################################
-# 4. Then how to install postgresql, a stateful app?
-###########################################################
-
-We have a working knowledge of using helm. Let's use that.
-
-See. https://artifacthub.io/packages/helm/bitnami/postgresql
-
-
-Question 7. What is the output of the command below?
-$ kubectl get pods -A | grep postgres
-
-
-Question 8. Please scale-out postgresql as 3 instances. 
-After invoking the commands, send the same command above several times. What do you find something. Please describe that.
-
-
-(Hint)
-kubectl get statefulset -A
-kubectl scale ...
-
-
-Question 9. Please scale-in postgresql as 1 instance. 
-After invoking the commands, send the same command above several times. What do you find something. Please describe that.
 
 
 Well done.
