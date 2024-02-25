@@ -14,8 +14,45 @@
 
 
 ###########################################################
+# Practice for understanding Deployment and statefulset
+###########################################################
+kubectl delete -f .\postgres-deployment.yaml
+(edit to statefulset)
+kubectl apply -f .\postgres-deployment.yaml
+
+kubectl get po -A
+kubectl get pv -A
+kubectl get pvc -A
+
+kubectl scale statefulset postgres --replicas=2
+kubectl get po -A
+kubectl get pv -A
+kubectl get pvc -A
+
+(Test)
+
+kubectl scale statefulset postgres --replicas=1
+kubectl get po -A
+kubectl get pv -A
+kubectl get pvc -A
+
+kubectl delete pvc postgres-pvc
+kubectl delete -f .\postgres-deployment.yaml
+kubectl delete -f postgres-service.yaml
+
+Let's dive into helm & operator
+
+###########################################################
 # Prepare required packages in advance
 ###########################################################
+
+[Frequenly used commands]
+helm repo list vs helm list
+helm repo add
+helm repo update
+helm search repo
+helm show values
+helm show chart 
 
 1. Ingress controller
    helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
@@ -32,13 +69,13 @@
 
 3. For TLS, https
    Cert manager (https://cert-manager.io/docs/releases/)
-   kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.3/cert-manager.yaml
+   kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.14.3/cert-manager.yaml
    kubectl get pods --namespace cert-manager
    kubectl create -f staging_issuer.yaml (Optional)
    kubectl create -f prod_issuer.yaml
 
 
-    cf. another approash using helm
+   cf. another approash using helm
     kubectl create namespace cert-manager
     helm repo add jetstack https://charts.jetstack.io
     helm repo update
@@ -54,6 +91,8 @@
 ###########################################################
 See. si_k8s/week2_k8s_enhanced/2. hands-on/SIL-k8s install - kustomize.txt
 
+https://meet.jit.si/
+https://github.com/jitsi/jitsi-meet
 
 ###########################################################
 # Set up jitsi w/ helm
